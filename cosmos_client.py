@@ -7,12 +7,21 @@ load_dotenv()
 
 class CosmosDBClient:
     def __init__(self):
+        # Local .env or environment variables
         self.url = os.getenv("COSMOS_DB_URL")
         self.key = os.getenv("COSMOS_DB_KEY")
-        self.db_name = os.getenv("COSMOS_DB_NAME", "TraderDB")
+        self.db_name = os.getenv("COSMOS_DB_NAME", "tradingdb")
         
+        # Fallback to Streamlit Secrets (for production)
+        if not self.url and "COSMOS_DB_URL" in st.secrets:
+            self.url = st.secrets["COSMOS_DB_URL"]
+        if not self.key and "COSMOS_DB_KEY" in st.secrets:
+            self.key = st.secrets["COSMOS_DB_KEY"]
+        if self.db_name == "tradingdb" and "COSMOS_DB_NAME" in st.secrets:
+            self.db_name = st.secrets["COSMOS_DB_NAME"]
+            
         if not self.url or not self.key:
-            st.error("Cosmos DB credentials not found. Please check your .env file.")
+            st.error("Cosmos DB credentials not found. Please check your .env file or Streamlit Secrets.")
             st.stop()
             
         self.client = CosmosClient(self.url, self.key)
