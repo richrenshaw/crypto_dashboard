@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Sensitive data
+.env
+
+# Streamlit
+.streamlit/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+thumbs.db
