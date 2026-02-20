@@ -2,4 +2,3 @@ streamlit
 azure-cosmos
 pandas
 plotly
-python-dotenv
