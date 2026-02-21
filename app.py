@@ -59,6 +59,11 @@ if settings:
         coins_str = st.text_area("Coins to Track (comma separated)", 
                                  value=", ".join(settings.get("COINS_TO_TRACK", [])))
         
+        st.subheader("Templates")
+        prompt_template = st.text_area("Prompt Template", 
+                                       value=settings.get("PROMPT_TEMPLATE", ""),
+                                       height=200)
+        
         submitted = st.form_submit_button("Update Settings")
         
         if submitted:
@@ -67,6 +72,7 @@ if settings:
             settings["STOP_LOSS"] = sl
             settings["ORDER_AMOUNT"] = amount
             settings["COINS_TO_TRACK"] = new_coins
+            settings["PROMPT_TEMPLATE"] = prompt_template
             
             if client.update_settings(settings):
                 st.sidebar.success("Settings updated successfully!")
@@ -78,16 +84,34 @@ st.title("📈 Crypto Trader Dashboard")
 
 # 1. Top Metrics
 portfolio = client.get_portfolio()
+equity_logs = client.get_equity_logs()
+
 if portfolio:
+    # Display Last Run Time
+    last_run = "Unknown"
+    if equity_logs:
+        latest_log = equity_logs[0] # Sorted DESC
+        ts = latest_log.get("timestamp")
+        if ts:
+            last_run = pd.to_datetime(ts).strftime("%Y-%m-%d %H:%M:%S")
+    
+    st.markdown(f"**Last Update:** `{last_run}`")
+    
     cols = st.columns(4)
-    total_val = sum(h.get("value_usd", 0) for h in portfolio.get("holdings", {}).values()) + portfolio.get("balance_usd", 0)
+    # Calculate total value using current_price if available
+    total_holdings_val = 0
+    for h in portfolio.get("holdings", {}).values():
+        qty = h.get("quantity", 0)
+        curr_price = h.get("current_price", h.get("entry_price", 0))
+        total_holdings_val += qty * curr_price
+        
+    total_val = total_holdings_val + portfolio.get("balance_usd", 0)
     
     cols[0].metric("Total Portfolio Value", f"${total_val:,.2f}")
     cols[1].metric("Cash Balance", f"${portfolio.get('balance_usd', 0):,.2f}")
     cols[2].metric("Holdings Count", len(portfolio.get("holdings", {})))
     
     # Simple profit calculation if equity logs exist
-    equity_logs = client.get_equity_logs()
     if len(equity_logs) > 1:
         start_val = equity_logs[-1].get("total_value", total_val)
         pnl = total_val - start_val
@@ -107,7 +131,12 @@ if equity_logs:
                   title="Equity Curve",
                   line_shape='spline',
                   color_discrete_sequence=['#00cc96'])
-    fig.update_layout(template="plotly_dark", margin=dict(l=20, r=20, t=40, b=20))
+    fig.update_layout(
+        template="plotly_dark", 
+        margin=dict(l=20, r=20, t=40, b=20),
+        xaxis_title="Time",
+        yaxis_title="Total Value (USD)"
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 # 3. Portfolio & Trades
@@ -118,15 +147,38 @@ with col_left:
     if portfolio:
         holdings = []
         for coin, data in portfolio.get("holdings", {}).items():
+            qty = data.get("quantity", 0)
+            entry = data.get("entry_price", 0)
+            curr = data.get("current_price", entry)
+            val = qty * curr
+            pnl_usd = (curr - entry) * qty if entry > 0 else 0
+            pnl_pct = ((curr / entry) - 1) * 100 if entry > 0 else 0
+            
             holdings.append({
                 "Coin": coin,
-                "Quantity": data.get("quantity"),
-                "Avg Entry": data.get("entry_price"),
-                "Value (USD)": data.get("value_usd")
+                "Quantity": qty,
+                "Avg Entry": entry,
+                "Current Price": curr,
+                "Value (USD)": val,
+                "P&L ($)": pnl_usd,
+                "P&L (%)": pnl_pct,
+                "URL": data.get("url", "")
             })
         df_holdings = pd.DataFrame(holdings)
         if not df_holdings.empty:
-            st.dataframe(df_holdings.sort_values("Value (USD)", ascending=False), use_container_width=True, hide_index=True)
+            st.dataframe(
+                df_holdings.sort_values("Value (USD)", ascending=False), 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "URL": st.column_config.LinkColumn("Info Link", display_text="View Coin"),
+                    "P&L (%)": st.column_config.NumberColumn("P&L (%)", format="%.2f%%"),
+                    "P&L ($)": st.column_config.NumberColumn("P&L ($)", format="$%.2f"),
+                    "Value (USD)": st.column_config.NumberColumn("Value (USD)", format="$%.2f"),
+                    "Avg Entry": st.column_config.NumberColumn("Avg Entry", format="$%.4f"),
+                    "Current Price": st.column_config.NumberColumn("Current Price", format="$%.4f")
+                }
+            )
         else:
             st.info("No active holdings.")
 
