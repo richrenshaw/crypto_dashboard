@@ -22,6 +22,7 @@ class CosmosDBClient:
         self.trades_container = self.database.get_container_client("trades")
         self.equity_logs_container = self.database.get_container_client("equity_logs")
         self.portfolio_container = self.database.get_container_client("portfolio")
+        self.watchlist_container = self.database.get_container_client("watchlist")
 
     def get_settings(self):
         try:
@@ -61,4 +62,13 @@ class CosmosDBClient:
             return items
         except Exception as e:
             st.error(f"Error fetching trades: {e}")
+            return []
+
+    def get_watchlist(self):
+        try:
+            query = "SELECT * FROM c ORDER BY c.addedAt DESC"
+            items = list(self.watchlist_container.query_items(query=query, enable_cross_partition_query=True))
+            return items
+        except Exception as e:
+            st.error(f"Error fetching watchlist: {e}")
             return []

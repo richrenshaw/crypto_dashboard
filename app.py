@@ -193,6 +193,44 @@ with col_right:
     else:
         st.info("No recent trades found.")
 
+st.divider()
+
+# 4. Watchlist
+st.subheader("Watchlist (DexScreener Discoveries)")
+watchlist = client.get_watchlist()
+if watchlist:
+    import requests
+    import time
+    df_watch = pd.DataFrame(watchlist)
+    
+    st.dataframe(
+        df_watch[['coin', 'priceUsd', 'liquidityUsd', 'volume24h', 'priceChange1h', 'status', 'addedAt']].sort_values(by="addedAt", ascending=False),
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    pending_coins = df_watch[df_watch['status'] != 'bought']['coin'].unique().tolist()
+    if pending_coins:
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            buy_coin = st.selectbox("Select coin to Force Buy", [""] + pending_coins)
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if buy_coin and st.button(f"Force Buy {buy_coin}", type="primary"):
+                with st.spinner(f"Executing force buy for {buy_coin}..."):
+                    try:
+                        resp = requests.get(f"http://localhost:7071/api/ForceBuy?coin={buy_coin}")
+                        if resp.status_code == 200:
+                            st.success(f"Success: {resp.json().get('message')}")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(f"Error: {resp.text}")
+                    except Exception as e:
+                        st.error(f"Failed to call ForceBuy API: {e}\nEnsure Function App is running locally.")
+else:
+    st.info("Watchlist is currently empty.")
+
 st.sidebar.markdown("---")
 st.sidebar.info("Last refresh: " + datetime.now().strftime("%H:%M:%S"))
 if st.sidebar.button("Refresh Data"):
