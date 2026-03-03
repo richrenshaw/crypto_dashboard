@@ -154,6 +154,20 @@ with col_left:
             pnl_usd = (curr - entry) * qty if entry > 0 else 0
             pnl_pct = ((curr / entry) - 1) * 100 if entry > 0 else 0
             
+            target_pct = data.get("target_profit_pct")
+            if target_pct is not None:
+                try:
+                    target_val = float(target_pct)
+                    target_str = f"{target_val:.1f}%"
+                    progress_pct = (pnl_pct / target_val) * 100 if target_val > 0 else 0
+                    progress_str = f"{progress_pct:.1f}%"
+                except (ValueError, TypeError):
+                    target_str = "Global"
+                    progress_str = "N/A"
+            else:
+                target_str = "Global"
+                progress_str = "N/A"
+            
             holdings.append({
                 "Coin": coin,
                 "Quantity": qty,
@@ -162,6 +176,8 @@ with col_left:
                 "Value (USD)": val,
                 "P&L ($)": pnl_usd,
                 "P&L (%)": pnl_pct,
+                "Target %": target_str,
+                "Progress": progress_str,
                 "URL": data.get("url", "")
             })
         df_holdings = pd.DataFrame(holdings)
@@ -174,6 +190,8 @@ with col_left:
                     "URL": st.column_config.LinkColumn("Info Link", display_text="View Coin"),
                     "P&L (%)": st.column_config.NumberColumn("P&L (%)", format="%.2f%%"),
                     "P&L ($)": st.column_config.NumberColumn("P&L ($)", format="$%.2f"),
+                    "Target %": st.column_config.TextColumn("Target %"),
+                    "Progress": st.column_config.TextColumn("Progress"),
                     "Value (USD)": st.column_config.NumberColumn("Value (USD)", format="$%.2f"),
                     "Avg Entry": st.column_config.NumberColumn("Avg Entry", format="$%.4f"),
                     "Current Price": st.column_config.NumberColumn("Current Price", format="$%.4f")
