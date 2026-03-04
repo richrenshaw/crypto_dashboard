@@ -1,0 +1,77 @@
+{
+  "count": 26,
+  "sells": [
+    {
+      "timestamp": "2026-03-04T21:03:43.863337",
+      "action": "SELL",
+      "coin": "sol",
+      "price": "92.73",
+      "quantity": "all",
+      "pnl": "0.9930711182254761",
+      "reason": "Dynamic Take Profit (5.0%)",
+      "balance_usd": "850.3961508772461",
+      "total_value": "1010.3961508772461",
+      "id": "1772658223.863361"
+    },
+    {
+      "timestamp": "2026-02-25T18:29:58.748670",
+      "action": "SELL",
+      "coin": "btc",
+      "price": "69401.33",
+      "quantity": "all",
+      "pnl": "1.839475240899997",
+      "reason": "Take Profit (Fixed 10%)",
+      "balance_usd": "889.4030797590207",
+      "total_value": "1009.4030797590207",
+      "id": "1772044198.748695"
+    },
+    {
+      "timestamp": "2026-02-25T17:29:34.101466",
+      "action": "SELL",
+      "coin": "bonk",
+      "price": "6.56e-06",
+      "quantity": "all",
+      "pnl": "2.0149152542372875",
+      "reason": "Take Profit (Fixed 10%)",
+      "balance_usd": "907.5636045181207",
+      "total_value": "1007.5636045181207",
+      "id": "1772040574.101486"
+    },
+    {
+      "timestamp": "2026-02-25T17:01:12.727122",
+      "action": "SELL",
+      "coin": "eth",
+      "price": "2046.36",
+      "quantity": "all",
+      "pnl": "1.78008514664144",
+      "reason": "Take Profit (Fixed 10%)",
+      "balance_usd": "885.5486892638834",
+      "total_value": "1005.5486892638834",
+      "id": "1772038872.727144"
+    },
+    {
+      "timestamp": "2026-02-25T16:29:35.899310",
+      "action": "SELL",
+      "coin": "sol",
+      "price": "87.25",
+      "quantity": "all",
+      "pnl": "1.9343575418994412",
+      "reason": "Take Profit (Fixed 10%)",
+      "balance_usd": "903.7686041172419",
+      "total_value": "1003.7686041172419",
+      "id": "1772036975.899331"
+    },
+    {
+      "timestamp": "2026-02-25T15:59:54.074137",
+      "action": "SELL",
+      "coin": "floki",
+      "price": "3.059e-05",
+      "quantity": "all",
+      "pnl": "1.8342465753424655",
+      "reason": "Take Profit (Fixed 10%)",
+      "balance_usd": "881.8342465753425",
+      "total_value": "1001.8342465753425",
+      "id": "1772035194.074168"
+    }
+  ]
+}
