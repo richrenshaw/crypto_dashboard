@@ -137,117 +137,158 @@ if equity_logs:
         xaxis_title="Time",
         yaxis_title="Total Value (USD)"
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-# 3. Portfolio & Trades
-col_left, col_right = st.columns([1, 1])
+# 3. Portfolio
+st.subheader("Current holdings")
 
-with col_left:
-    st.subheader("Current Holdings")
-    if portfolio:
-        holdings = []
-        for coin, data in portfolio.get("holdings", {}).items():
-            qty = data.get("quantity", 0)
-            entry = data.get("entry_price", 0)
-            curr = data.get("current_price", entry)
-            val = qty * curr
-            pnl_usd = (curr - entry) * qty if entry > 0 else 0
-            pnl_pct = ((curr / entry) - 1) * 100 if entry > 0 else 0
-            
-            target_pct = data.get("target_profit_pct")
-            if target_pct is not None:
-                try:
-                    target_val = float(target_pct)
-                    target_str = f"{target_val:.1f}%"
-                    progress_pct = (pnl_pct / target_val) * 100 if target_val > 0 else 0
-                    progress_str = f"{progress_pct:.1f}%"
-                except (ValueError, TypeError):
-                    target_str = "Global"
-                    progress_str = "N/A"
-            else:
+if portfolio:
+    holdings = []
+    for coin, data in portfolio.get("holdings", {}).items():
+        qty = data.get("quantity", 0)
+        entry = data.get("entry_price", 0)
+        curr = data.get("current_price", entry)
+        val = qty * curr
+        pnl_usd = (curr - entry) * qty if entry > 0 else 0
+        pnl_pct = ((curr / entry) - 1) * 100 if entry > 0 else 0
+        
+        target_pct = data.get("target_profit_pct")
+        if target_pct is not None:
+            try:
+                target_val = float(target_pct)
+                target_str = f"{target_val:.1f}%"
+                progress_pct = (pnl_pct / target_val) * 100 if target_val > 0 else 0
+                progress_str = f"{progress_pct:.1f}%"
+            except (ValueError, TypeError):
                 target_str = "Global"
                 progress_str = "N/A"
-            
-            holdings.append({
-                "Coin": coin,
-                "Quantity": qty,
-                "Avg Entry": entry,
-                "Current Price": curr,
-                "Value (USD)": val,
-                "P&L ($)": pnl_usd,
-                "P&L (%)": pnl_pct,
-                "Target %": target_str,
-                "Progress": progress_str,
-                "URL": data.get("url", "")
-            })
-        df_holdings = pd.DataFrame(holdings)
-        if not df_holdings.empty:
-            st.dataframe(
-                df_holdings.sort_values("Value (USD)", ascending=False), 
-                use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "URL": st.column_config.LinkColumn("Info Link", display_text="View Coin"),
-                    "P&L (%)": st.column_config.NumberColumn("P&L (%)", format="%.2f%%"),
-                    "P&L ($)": st.column_config.NumberColumn("P&L ($)", format="$%.2f"),
-                    "Target %": st.column_config.TextColumn("Target %"),
-                    "Progress": st.column_config.TextColumn("Progress"),
-                    "Value (USD)": st.column_config.NumberColumn("Value (USD)", format="$%.2f"),
-                    "Avg Entry": st.column_config.NumberColumn("Avg Entry", format="$%.4f"),
-                    "Current Price": st.column_config.NumberColumn("Current Price", format="$%.4f")
-                }
-            )
         else:
-            st.info("No active holdings.")
-
-with col_right:
-    st.subheader("Recent Trades")
-    trades = client.get_recent_trades()
-    if trades:
-        df_trades = pd.DataFrame(trades)
-        df_trades = df_trades[['timestamp', 'coin', 'action', 'price', 'quantity', 'reason']]
-        df_trades['timestamp'] = pd.to_datetime(df_trades['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
-        st.dataframe(df_trades, use_container_width=True, hide_index=True)
+            target_str = "Global"
+            progress_str = "N/A"
+        
+        holdings.append({
+            "Coin": coin,
+            "Quantity": qty,
+            "Avg Entry": entry,
+            "Current Price": curr,
+            "Value (USD)": val,
+            "P&L ($)": pnl_usd,
+            "P&L (%)": pnl_pct,
+            "Target %": target_str,
+            "Progress": progress_str,
+            "URL": data.get("url", "")
+        })
+    df_holdings = pd.DataFrame(holdings)
+    if not df_holdings.empty:
+        st.dataframe(
+            df_holdings.sort_values("Value (USD)", ascending=False), 
+            width="stretch", 
+            hide_index=True,
+            column_config={
+                "URL": st.column_config.LinkColumn("Info Link", display_text="View Coin"),
+                "P&L (%)": st.column_config.NumberColumn("P&L (%)", format="%.2f%%"),
+                "P&L ($)": st.column_config.NumberColumn("P&L ($)", format="$%.2f"),
+                "Target %": st.column_config.TextColumn("Target %"),
+                "Progress": st.column_config.TextColumn("Progress"),
+                "Value (USD)": st.column_config.NumberColumn("Value (USD)", format="$%.2f"),
+                "Avg Entry": st.column_config.NumberColumn("Avg Entry", format="$%.4f"),
+                "Current Price": st.column_config.NumberColumn("Current Price", format="$%.4f")
+            }
+        )
     else:
-        st.info("No recent trades found.")
+        st.info("No active holdings.")
 
 st.divider()
 
-# 4. Watchlist
-st.subheader("Watchlist (DexScreener Discoveries)")
-watchlist = client.get_watchlist()
-if watchlist:
-    import requests
-    import time
-    df_watch = pd.DataFrame(watchlist)
+# 4. Recent Trades
+st.subheader("Recent trades")
+trades = client.get_recent_trades()
+if trades:
+    df_trades = pd.DataFrame(trades)
+    df_trades['timestamp'] = pd.to_datetime(df_trades['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
     
-    st.dataframe(
-        df_watch[['coin', 'priceUsd', 'liquidityUsd', 'volume24h', 'priceChange1h', 'status', 'addedAt']].sort_values(by="addedAt", ascending=False),
-        use_container_width=True,
-        hide_index=True
-    )
+    # Split into Buys and Sells (case-insensitive)
+    df_buys = df_trades[df_trades['action'].str.lower() == 'buy'].copy()
+    df_sells = df_trades[df_trades['action'].str.lower() == 'sell'].copy()
     
-    pending_coins = df_watch[df_watch['status'] != 'bought']['coin'].unique().tolist()
-    if pending_coins:
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            buy_coin = st.selectbox("Select coin to Force Buy", [""] + pending_coins)
-        with col2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if buy_coin and st.button(f"Force Buy {buy_coin}", type="primary"):
-                with st.spinner(f"Executing force buy for {buy_coin}..."):
-                    try:
-                        resp = requests.get(f"http://localhost:7071/api/ForceBuy?coin={buy_coin}")
-                        if resp.status_code == 200:
-                            st.success(f"Success: {resp.json().get('message')}")
-                            time.sleep(1)
-                            st.rerun()
-                        else:
-                            st.error(f"Error: {resp.text}")
-                    except Exception as e:
-                        st.error(f"Failed to call ForceBuy API: {e}\nEnsure Function App is running locally.")
+    # 4a. Recent Buys
+    st.subheader("Recent Buys")
+    if not df_buys.empty:
+        # Columns for buys: remove action, include estimated_profit_pct (if exists)
+        buy_cols = ['timestamp', 'coin', 'price', 'quantity', 'reason']
+        if 'estimated_profit_pct' in df_buys.columns:
+            buy_cols.append('estimated_profit_pct')
+        elif 'target_profit_pct' in df_buys.columns:
+            buy_cols.append('target_profit_pct')
+            
+        st.dataframe(
+            df_buys[buy_cols],
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "price": st.column_config.NumberColumn("Price", format="$%.4f"),
+                "estimated_profit_pct": st.column_config.NumberColumn("Est. Profit %", format="%.1f%%"),
+                "target_profit_pct": st.column_config.NumberColumn("Target Profit %", format="%.1f%%")
+            }
+        )
+    else:
+        st.info("No recent buy trades found.")
+        
+    st.write("") # Spacer
+    
+    # 4b. Recent Sells
+    st.subheader("Recent Sells")
+    if not df_sells.empty:
+        # Columns for sells: remove action and quantity, add profit
+        sell_cols = ['timestamp', 'coin', 'price', 'reason']
+        
+        # Calculate profit on-the-fly or use existing field
+        if 'pnl' in df_sells.columns:
+            df_sells['profit'] = pd.to_numeric(df_sells['pnl'], errors='coerce')
+            sell_cols.append('profit')
+        elif 'price' in df_sells.columns and 'entry_price' in df_sells.columns and 'quantity' in df_sells.columns:
+            # Ensure columns are numeric, coerce errors to NaN
+            df_sells['price_num'] = pd.to_numeric(df_sells['price'], errors='coerce')
+            df_sells['entry_num'] = pd.to_numeric(df_sells['entry_price'], errors='coerce')
+            df_sells['qty_num'] = pd.to_numeric(df_sells['quantity'], errors='coerce')
+            
+            df_sells['profit'] = (df_sells['price_num'] - df_sells['entry_num']) * df_sells['qty_num']
+            sell_cols.append('profit')
+        elif 'profit' in df_sells.columns:
+            df_sells['profit'] = pd.to_numeric(df_sells['profit'], errors='coerce')
+            sell_cols.append('profit')
+        elif 'profit_usd' in df_sells.columns:
+            df_sells['profit'] = pd.to_numeric(df_sells['profit_usd'], errors='coerce')
+            sell_cols.append('profit')
+            
+        st.dataframe(
+            df_sells[sell_cols],
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "price": st.column_config.NumberColumn("Price", format="$%.4f"),
+                "profit": st.column_config.NumberColumn("Profit", format="$%.2f")
+            }
+        )
+    else:
+        st.info("No recent sell trades found.")
 else:
-    st.info("Watchlist is currently empty.")
+    st.info("No recent trades found.")
+
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚠️ Danger Zone")
+confirm_clear = st.sidebar.checkbox("I want to clear all trade history")
+if st.sidebar.button("🗑️ Clear All Data", disabled=not confirm_clear, type="primary"):
+    with st.sidebar.spinner("Clearing data... this may take a moment"):
+        success = client.clear_all_data()
+        if success:
+            st.sidebar.success("All data cleared! Resetting dashboard...")
+            import time
+            time.sleep(1)
+            st.rerun()
+        else:
+            st.sidebar.error("Failed to clear data. Check terminal logs.")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Last refresh: " + datetime.now().strftime("%H:%M:%S"))
